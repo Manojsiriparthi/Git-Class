@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: read
+  security-events: write
 
 jobs:
   terraform-check:
@@ -14,34 +15,50 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 1. Checkout
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
+      # 2. Terraform
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.9.8
 
-      # 1. Check Terraform formatting
+      # 3. Terraform formatting
       - name: Terraform Format Check
         run: terraform fmt -check -recursive
 
-      # 2. Initialize Terraform
+      # 4. Terraform initialization
       - name: Terraform Init
         run: terraform init -backend=false
 
-      # 3. Validate Terraform code
+      # 5. Terraform validation
       - name: Terraform Validate
         run: terraform validate
 
-      # 4. Install TFLint
+      # 6. TFLint
       - name: Setup TFLint
         uses: terraform-linters/setup-tflint@v5
 
-      # 5. Initialize TFLint
       - name: TFLint Init
         run: tflint --init
 
-      # 6. Run TFLint
       - name: TFLint Check
         run: tflint --recursive
+
+      # 7. Secret scanning
+      - name: Gitleaks Secret Scan
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # 8. Terraform security scanning
+      - name: Checkov Security Scan
+        uses: bridgecrewio/checkov-action@v12
+        with:
+          directory: .
+          framework: terraform
+          soft_fail: false
