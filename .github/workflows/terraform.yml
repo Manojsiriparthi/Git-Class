@@ -14,34 +14,44 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 1. Checkout code
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
+      # 2. Setup Terraform
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.9.8
 
-      # 1. Check Terraform formatting
+      # 3. Check Terraform formatting
       - name: Terraform Format Check
         run: terraform fmt -check -recursive
 
-      # 2. Initialize Terraform
+      # 4. Initialize Terraform
       - name: Terraform Init
         run: terraform init -backend=false
 
-      # 3. Validate Terraform code
+      # 5. Validate Terraform code
       - name: Terraform Validate
         run: terraform validate
 
-      # 4. Install TFLint
+      # 6. Setup TFLint
       - name: Setup TFLint
         uses: terraform-linters/setup-tflint@v5
 
-      # 5. Initialize TFLint
+      # 7. Initialize TFLint
       - name: TFLint Init
         run: tflint --init
 
-      # 6. Run TFLint
+      # 8. Run TFLint
       - name: TFLint Check
         run: tflint --recursive
+
+      # 9. Scan for credentials/secrets
+      - name: Gitleaks Secret Scan
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
